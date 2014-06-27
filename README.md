@@ -1,9 +1,4 @@
-dropwizard-guice-example
-========================
+# Stratum
 
-A complete dropwizard example for using Guice.
+An opinionated REST platform built on Dropwizard and Guice, intended to be readily deployed to Heroku.
 
-```
-mvn clean package
-java -jar target/hello-guice-*-SNAPSHOT.jar server hello-world.yml
-```
