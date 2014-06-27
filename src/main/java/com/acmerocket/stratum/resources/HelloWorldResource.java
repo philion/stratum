@@ -1,16 +1,18 @@
-package com.example.helloworld.resources;
+package com.acmerocket.stratum.resources;
 
+import com.acmerocket.stratum.core.Saying;
 import com.codahale.metrics.annotation.Timed;
-import com.example.helloworld.core.Saying;
 import com.google.common.base.Optional;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import com.sun.jersey.api.core.HttpContext;
 import com.sun.jersey.api.core.HttpRequestContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -18,10 +20,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+
 import java.util.concurrent.atomic.AtomicLong;
 
 @Path("/hello-world")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class HelloWorldResource {
 
 	final Logger logger = LoggerFactory.getLogger(HelloWorldResource.class);

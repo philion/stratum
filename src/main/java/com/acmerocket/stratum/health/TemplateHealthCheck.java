@@ -1,4 +1,4 @@
-package com.example.helloworld.health;
+package com.acmerocket.stratum.health;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

@@ -1,11 +1,11 @@
-package com.example.helloworld;
+package com.acmerocket.stratum;
 
 import javax.inject.Named;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 
-public class HelloWorldModule extends AbstractModule {
+public class StratumModule extends AbstractModule {
 	
 	@Override
 	protected void configure() {
@@ -14,13 +14,13 @@ public class HelloWorldModule extends AbstractModule {
 	
 	@Provides
 	@Named("template")
-	public String provideTemplate(HelloWorldConfiguration configuration) {
+	public String provideTemplate(StratumConfiguration configuration) {
 		return configuration.getTemplate();
 	}
 
 	@Provides
 	@Named("defaultName")
-	public String provideDefaultName(HelloWorldConfiguration configuration) {
+	public String provideDefaultName(StratumConfiguration configuration) {
 		return configuration.getDefaultName();
 	}
 

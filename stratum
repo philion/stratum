@@ -1,0 +1,225 @@
+#!/bin/bash
+
+if [ -z "$1" ]                
+then
+    CMD="run"
+else
+    CMD=$1
+fi
+
+if [ -n "$2" ]                
+then
+    PARAM=$2
+fi
+
+## TODO Figure out version! - just find jar
+VERSION="0.7.0.2"
+#VERSION="+([0-9]).+([0-9])?(-SNAPSHOT)"
+
+# resolve location
+NAME="${0##*/}"
+PROJECT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+DEPLOY_USER=deploy
+DEPLOY_DIR="/home/$NAME"
+
+JAR="$PROJECT_HOME/$NAME.jar"
+CONFIG="$PROJECT_HOME/$NAME.yml"
+UPSTART="/etc/init/$NAME.conf"
+
+if [ -e "$PROJECT_HOME/target" ]
+then
+    JAR="$PROJECT_HOME/target/$NAME-$VERSION.jar"
+    CONFIG="$PROJECT_HOME/src/test/resources/development.yml"   
+fi
+
+#### TODO ####
+# Add search for config (standard locations, names)
+# update to use rsync (to same time/space)
+# add log tailing/grepping
+
+function dobuild {
+    if [ -e "$PROJECT_HOME/pom.xml" ]
+    then
+        echo Building $NAME
+        cd $PROJECT_HOME
+        mvn -q clean package
+    else
+        echo Cannot build, missing $PROJECT_HOME/pom.xml.
+        exit 1
+    fi
+}
+
+function quickbuild {
+    if [ -e "$PROJECT_HOME/pom.xml" ]
+    then
+        echo Quick-building $NAME
+        cd $PROJECT_HOME
+        mvn -q package -Dmaven.test.skip=true
+    else
+        echo Cannot build, missing $PROJECT_HOME/pom.xml.
+        exit 1
+    fi
+}
+
+function dorun {    
+    if [ -n "$PARAM" ]                
+    then
+        CONFIG=$PARAM
+    fi
+    
+    # figure out the jar
+    if [ ! -e "$JAR" ]
+    then
+        JAR="$PROJECT_HOME/target/$NAME-$VERSION.jar"
+    fi
+    
+    echo Running $NAME with $CONFIG
+    java -jar $JAR server $CONFIG
+}
+
+function dostart {
+    if [ $REMOTE ] ; then
+        ssh $HOST sudo start $NAME
+    elif [ -e $UPSTART ] ; then
+        sudo start $NAME
+    else 
+        cd $DIR
+        if [ ! -e $JAR ]; then
+            echo "Missing executable JAR: $JAR"
+            exit 1
+        fi
+	
+        if [ ! -e $CONFIG ]; then
+            echo "Missing configuration $CONFIG"
+            exit 1
+        fi
+    
+        nohup java -javaagent:newrelic.jar -jar $JAR server $CONFIG >$NAME-startup.log 2>&1 &
+        echo Started $NAME service
+        RETVAL=$?
+    fi
+}
+
+function dostop {
+    if [ $REMOTE ] ; then
+        ssh $HOST sudo stop $NAME
+    elif [ -e $UPSTART ] ; then
+        sudo stop $NAME
+    else 
+        PID=$(ps -e -o pid,command | grep $CONFIG | grep -v 'grep' | sed 's/^ *//g' | cut -d' ' -f1)
+		
+        if [ -n "$PID" ]
+        then
+            kill $PID
+    	    RETVAL=$?
+            echo Killed $PID
+        else
+            echo No process to kill.
+    		RETVAL=1
+        fi
+    fi
+}
+
+function dorestart {
+    if [ $REMOTE ] ; then
+        ssh $HOST sudo restart $NAME
+    elif [ -e $UPSTART ] ; then
+        sudo restart $NAME
+    else 
+        dostop
+        dostart
+    fi
+}
+
+function dostatus {
+    if [ -e $UPSTART ]
+    then
+        sudo status $NAME
+        curl http://localhost:8081/healthcheck
+    else
+        PID=$(ps -e -o pid,command | grep $CONFIG | grep -v 'grep' | sed 's/^ *//g' | cut -d' ' -f1)
+		
+        if [ -n "$PID" ]
+        then
+            echo $NAME running as process $PID.
+            curl http://localhost:8081/healthcheck
+        else
+            echo $NAME not running.
+        fi
+    fi    
+}
+
+function doconfig {
+    if [ -z $PARAM ]; then
+        echo Deploy target not specified.
+        exit 1 
+    else
+        HOST=$DEPLOY_USER@$PARAM
+    fi
+    
+    # figure out cluster name from deploy host
+    CLUSTER=${PARAM%%.*}
+    CONFIG="$PROJECT_HOME/src/main/resources/$CLUSTER.yml"
+    if [ ! -f $CONFIG ]; then
+        echo Cannot find config file $CONFIG
+        exit 1
+    fi
+    echo Deploying config for $NAME: $CONFIG
+            
+    # Copy files
+    deploytmp=/home/deploy/$NAME.tmp
+    ssh $HOST "mkdir $deploytmp"
+    scp $CONFIG $HOST:$deploytmp/$NAME.yml
+    
+    ssh $HOST "sudo chown $NAME:$NAME $deploytmp/*"
+    ssh $HOST "sudo mv $deploytmp/* $DEPLOY_DIR"
+    ssh $HOST "rmdir $deploytmp"
+                    
+    # And restart
+    ssh $HOST "sudo restart $NAME" 
+}
+
+case "$CMD" in
+    build)
+        dobuild
+        ;;
+    quickbuild)
+        quickbuild
+        ;;
+    dev)
+        quickbuild
+        dorun
+        ;;
+    run)
+    echo $JAR
+        if [ ! -f $JAR ]
+        then
+            quickbuild
+        fi
+        dorun
+        ;;
+    config)
+        
+        doconfig
+        ;;
+    start)
+        dostart
+        ;;
+    stop)
+        dostop
+        ;;
+    restart)
+        dorestart
+        ;;
+    status)
+        dostatus
+        ;;
+    kick)
+        ssh $HOST "restart $NAME" 
+        ;;
+    *)
+        echo "Huh: $*"
+        exit 1
+        ;;
+esac
