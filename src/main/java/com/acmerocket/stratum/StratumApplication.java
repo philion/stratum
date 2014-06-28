@@ -4,7 +4,7 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
-import com.acmerocket.stratum.minisu.env.EnvironmentVariableInterpolationBundle;
+import com.acmerocket.stratum.minisu.EnvVarConfigBundle;
 import com.hubspot.dropwizard.guice.GuiceBundle;
 
 public class StratumApplication extends Application<StratumConfiguration> {
@@ -25,7 +25,7 @@ public class StratumApplication extends Application<StratumConfiguration> {
 		bootstrap.addBundle(guiceBundle);
 		
 		// Add a bundle to handle env vars in config
-		bootstrap.addBundle(new EnvironmentVariableInterpolationBundle());
+		bootstrap.addBundle(new EnvVarConfigBundle());
 	}
 
     @Override
