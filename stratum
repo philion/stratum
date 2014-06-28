@@ -30,7 +30,7 @@ UPSTART="/etc/init/$NAME.conf"
 if [ -e "$PROJECT_HOME/target" ]
 then
     JAR="$PROJECT_HOME/target/$NAME-$VERSION.jar"
-    CONFIG="$PROJECT_HOME/src/test/resources/development.yml"   
+    CONFIG="$PROJECT_HOME/src/main/resources/heroku.yml"   
 fi
 
 #### TODO ####

@@ -4,3 +4,6 @@ defaultName: Stranger
 server:
   type: simple
   applicationContextPath: /v1
+  connector:
+    type: http
+    port: ${PORT}
